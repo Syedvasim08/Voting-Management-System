@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voting Management System</title>
+<style>
+:root{--bg:#f4f6fb;--card:#fff;--ink:#1c2340;--mut:#6b7390;--pri:#2f4bd8;--ok:#1a8f5a;--bad:#c93a3a;--line:#e3e7f2}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:linear-gradient(135deg,#1c2a8c,#2f4bd8);color:#fff;padding:22px 20px}
+header h1{margin:0;font-size:1.5rem}header p{margin:4px 0 0;opacity:.85;font-size:.9rem}
+nav{display:flex;gap:6px;flex-wrap:wrap;padding:12px 20px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0}
+nav button{border:0;background:none;padding:9px 16px;border-radius:8px;font-weight:600;color:var(--mut);cursor:pointer}
+nav button.on{background:var(--pri);color:#fff}
+main{max-width:760px;margin:22px auto;padding:0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:18px}
+h2{margin-top:0}label{display:block;font-weight:600;margin:14px 0 5px;font-size:.9rem}
+input[type=text],input[type=password]{width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;font-size:1rem}
+.btn{background:var(--pri);color:#fff;border:0;padding:11px 20px;border-radius:8px;font-weight:600;cursor:pointer;margin-top:16px;font-size:.95rem}
+.btn.alt{background:#fff;color:var(--pri);border:1px solid var(--pri)}.btn.red{background:var(--bad)}
+.msg{margin-top:14px;padding:11px 14px;border-radius:8px;display:none;font-weight:500}
+.msg.ok{display:block;background:#e4f6ed;color:var(--ok)}.msg.err{display:block;background:#fbe9e9;color:var(--bad)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.stat{text-align:center;padding:16px;background:var(--bg);border-radius:10px}.stat b{font-size:1.8rem;display:block}.stat span{color:var(--mut);font-size:.85rem}
+.cand{display:flex;align-items:center;gap:12px;border:2px solid var(--line);border-radius:10px;padding:14px;margin:10px 0;cursor:pointer}
+.cand.sel{border-color:var(--pri);background:#eef1ff}.cand small{color:var(--mut)}
+.bar{background:var(--line);border-radius:6px;height:14px;margin-top:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--pri)}
+.prev{width:90px;height:90px;border-radius:10px;object-fit:cover;margin-top:10px;border:1px solid var(--line)}
+table{width:100%;border-collapse:collapse}td,th{padding:9px;text-align:left;border-bottom:1px solid var(--line);font-size:.9rem}
+td img{width:36px;height:36px;border-radius:50%;object-fit:cover}
+.tag{padding:3px 10px;border-radius:99px;font-size:.78rem;font-weight:700}.tag.y{background:#e4f6ed;color:var(--ok)}.tag.n{background:#fff3d6;color:#9a6b00}
+.hide{display:none}.winner{font-size:1.1rem;color:var(--ok);font-weight:700}
+</style>
+</head>
+<body>
+<header><h1>🗳️ Voting Management System</h1><p>Technology for Transparent Voting · SRM IST, Tiruchirappalli</p></header>
+<nav>
+  <button data-t="home" class="on">Home</button><button data-t="reg">Register</button>
+  <button data-t="vote">Vote</button><button data-t="res">Results</button><button data-t="adm">Admin</button>
+</nav>
+<main>
+<section id="home" class="card"><h2>Live Election Status</h2>
+  <div class="stats"><div class="stat"><b id="sReg">0</b><span>Registered voters</span></div>
+  <div class="stat"><b id="sVoted">0</b><span>Votes cast</span></div>
+  <div class="stat"><b id="sState">–</b><span>Election</span></div></div>
+  <p style="color:var(--mut)">Every figure here is read from the MySQL/SQLite database through the backend API. Register as a voter, verify with your photo, cast one vote, and view the result once the election is closed.</p></section>
+
+<section id="reg" class="card hide"><h2>Voter Registration</h2>
+  <label>Voter ID (3 letters + 7 digits)</label><input type="text" id="rId" placeholder="ABC1234567" maxlength="10">
+  <label>Full name</label><input type="text" id="rName">
+  <label>Your photo</label><input type="file" id="rPhoto" accept="image/*" capture="user"><img id="rPrev" class="prev hide">
+  <button class="btn" onclick="register()">Register</button><div class="msg" id="rMsg"></div></section>
+
+<section id="vote" class="card hide"><h2>Voter Verification &amp; Voting</h2>
+  <div id="vStep1">
+    <label>Voter ID</label><input type="text" id="vId" placeholder="ABC1234567" maxlength="10">
+    <label>Your photo (for image verification)</label><input type="file" id="vPhoto" accept="image/*" capture="user"><img id="vPrev" class="prev hide">
+    <button class="btn" onclick="login()">Verify &amp; Continue</button>
+  </div>
+  <div id="vStep2" class="hide"><p>Welcome, <b id="vName"></b>. Select one candidate:</p><div id="candList"></div>
+    <button class="btn" onclick="castVote()">Cast Vote</button></div>
+  <div class="msg" id="vMsg"></div></section>
+
+<section id="res" class="card hide"><h2>Election Result</h2><div id="resBody"></div><div class="msg" id="resMsg"></div>
+  <button class="btn alt" onclick="loadResults()">Refresh</button></section>
+
+<section id="adm" class="card hide"><h2>Admin Panel</h2>
+  <div id="aLogin"><label>Admin password</label><input type="password" id="aPw" placeholder="default: admin123">
+    <button class="btn" onclick="adminLogin()">Login</button></div>
+  <div id="aPanel" class="hide">
+    <label>Add candidate</label><input type="text" id="cName" placeholder="Candidate name" style="margin-bottom:8px"><input type="text" id="cParty" placeholder="Party">
+    <button class="btn" onclick="addCand()">Add Candidate</button>
+    <button class="btn alt" onclick="setElection(false)">Close Election</button>
+    <button class="btn alt" onclick="setElection(true)">Reopen Election</button>
+    <button class="btn red" onclick="resetAll()">Reset All Data</button>
+    <h3 style="margin-top:26px">Registered voters</h3><table id="vTable"></table></div>
+  <div class="msg" id="aMsg"></div></section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+let voteToken = null, adminToken = null, selected = null;
+const regImg = {}, voteImg = {};
+
+async function api(url, method = 'GET', body, headers = {}) {
+  const r = await fetch(url, { method, headers: { 'Content-Type': 'application/json', ...headers }, body: body ? JSON.stringify(body) : undefined });
+  const data = await r.json(); if (!r.ok) throw new Error(data.error || 'Request failed'); return data;
+}
+function show(el, text, ok = true) { el.className = 'msg ' + (ok ? 'ok' : 'err'); el.textContent = text; }
+
+// Image → resized photo + 64-bit average hash (used for image-based verification)
+function processImage(file, store, prevEl) {
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas'); c.width = c.height = 160;
+    const x = c.getContext('2d'); const s = Math.min(img.width, img.height);
+    x.drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, 160, 160);
+    const h = document.createElement('canvas'); h.width = h.height = 8;
+    const hx = h.getContext('2d'); hx.drawImage(c, 0, 0, 8, 8);
+    const d = hx.getImageData(0, 0, 8, 8).data, g = [];
+    for (let i = 0; i < d.length; i += 4) g.push(d[i] * .299 + d[i + 1] * .587 + d[i + 2] * .114);
+    const avg = g.reduce((a, b) => a + b) / g.length;
+    store.photo = c.toDataURL('image/jpeg', .7); store.hash = g.map(v => v > avg ? '1' : '0').join('');
+    prevEl.src = store.photo; prevEl.classList.remove('hide');
+  };
+  img.src = URL.createObjectURL(file);
+}
+$('rPhoto').onchange = e => processImage(e.target.files[0], regImg, $('rPrev'));
+$('vPhoto').onchange = e => processImage(e.target.files[0], voteImg, $('vPrev'));
+
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b));
+  ['home', 'reg', 'vote', 'res', 'adm'].forEach(t => $(t).classList.toggle('hide', t !== b.dataset.t));
+  if (b.dataset.t === 'home') loadStats(); if (b.dataset.t === 'res') loadResults();
+});
+
+async function loadStats() {
+  const s = await api('/api/stats'); $('sReg').textContent = s.registered; $('sVoted').textContent = s.voted; $('sState').textContent = s.open ? 'Open' : 'Closed';
+}
+async function register() {
+  try { const r = await api('/api/register', 'POST', { voterId: $('rId').value, name: $('rName').value, photo: regImg.photo, hash: regImg.hash });
+    show($('rMsg'), r.message); } catch (e) { show($('rMsg'), e.message, false); }
+}
+async function login() {
+  try { const r = await api('/api/login', 'POST', { voterId: $('vId').value, hash: voteImg.hash });
+    voteToken = r.token; $('vName').textContent = r.name; $('vStep1').classList.add('hide'); $('vStep2').classList.remove('hide'); $('vMsg').className = 'msg';
+    const list = await api('/api/candidates');
+    $('candList').innerHTML = list.map(c => `<div class="cand" data-id="${c.candidate_id}"><div><b>${c.name}</b><br><small>${c.party}</small></div></div>`).join('');
+    document.querySelectorAll('.cand').forEach(el => el.onclick = () => { selected = +el.dataset.id; document.querySelectorAll('.cand').forEach(x => x.classList.toggle('sel', x === el)); });
+  } catch (e) { show($('vMsg'), e.message, false); }
+}
+async function castVote() {
+  if (!selected) return show($('vMsg'), 'Please select a candidate.', false);
+  try { const r = await api('/api/vote', 'POST', { token: voteToken, candidateId: selected });
+    show($('vMsg'), r.message); $('vStep2').classList.add('hide'); $('vStep1').classList.remove('hide'); voteToken = selected = null;
+  } catch (e) { show($('vMsg'), e.message, false); }
+}
+async function loadResults() {
+  $('resBody').innerHTML = ''; $('resMsg').className = 'msg';
+  try { const r = await api('/api/results', 'GET', null, adminToken ? { 'x-token': adminToken } : {});
+    $('resBody').innerHTML = (r.winners.length ? `<p class="winner">🏆 Winner: ${r.winners.join(', ')}${r.winners.length > 1 ? ' (tie)' : ''}</p>` : '<p>No votes cast yet.</p>') +
+      r.results.map(c => `<div style="margin:14px 0"><b>${c.name}</b> <small>(${c.party})</small> — ${c.votes} vote(s)<div class="bar"><i style="width:${r.total ? c.votes / r.total * 100 : 0}%"></i></div></div>`).join('') + `<p>Total votes: <b>${r.total}</b></p>`;
+  } catch (e) { show($('resMsg'), e.message, false); }
+}
+async function adminLogin() {
+  try { adminToken = (await api('/api/admin/login', 'POST', { password: $('aPw').value })).token;
+    $('aLogin').classList.add('hide'); $('aPanel').classList.remove('hide'); loadVoters(); $('aMsg').className = 'msg';
+  } catch (e) { show($('aMsg'), e.message, false); }
+}
+const H = () => ({ 'x-token': adminToken });
+async function addCand() {
+  try { show($('aMsg'), (await api('/api/admin/candidates', 'POST', { name: $('cName').value, party: $('cParty').value }, H())).message); $('cName').value = $('cParty').value = ''; }
+  catch (e) { show($('aMsg'), e.message, false); }
+}
+async function setElection(open) { const r = await api('/api/admin/election', 'POST', { open }, H()); show($('aMsg'), 'Election is now ' + (r.open ? 'OPEN' : 'CLOSED')); }
+async function loadVoters() {
+  const v = await api('/api/admin/voters', 'GET', null, H());
+  $('vTable').innerHTML = '<tr><th></th><th>Voter ID</th><th>Name</th><th>Status</th><th></th></tr>' + v.map(x =>
+    `<tr><td><img src="${x.photo}"></td><td>${x.voter_id}</td><td>${x.name}</td><td><span class="tag ${x.has_voted ? 'y' : 'n'}">${x.has_voted ? 'VOTED' : 'NOT VOTED'}</span></td><td><button class="btn red" style="margin:0;padding:5px 10px" onclick="delVoter('${x.voter_id}')">Delete</button></td></tr>`).join('');
+}
+async function delVoter(id) {
+  if (!confirm('Delete voter ' + id + '?')) return;
+  try { show($('aMsg'), (await api('/api/admin/voters/' + id, 'DELETE', null, H())).message); loadVoters(); } catch (e) { show($('aMsg'), e.message, false); }
+}
+async function resetAll() {
+  if (!confirm('Delete ALL voters and votes?')) return;
+  try { show($('aMsg'), (await api('/api/admin/reset', 'POST', {}, H())).message); loadVoters(); } catch (e) { show($('aMsg'), e.message, false); }
+}
+loadStats();
+</script>
+</body>
+</html>

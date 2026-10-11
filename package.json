@@ -1,0 +1,8 @@
+{
+  "name": "voting-management-system",
+  "version": "1.0.0",
+  "description": "Web version of the Voting Management System (SRM IST) - Node.js + Express + SQLite",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": { "express": "^4.19.2" }
+}
