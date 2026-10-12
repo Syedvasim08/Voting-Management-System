@@ -3,8 +3,8 @@
 Web version of the **Voting Management System** project (SRM IST, Tiruchirappalli – 21MAB201T).
 Technology for Transparent Voting.
 
-**Team:** Kishore (RA2511056050022) · Niyas Ahmed (RA2511056050024) · Kathir Vel (RA2511056050052) · Syed Mohamedvasim (RA2511056050030)
-**Guide:** Dr. T. Sathya, Division of Mathematics, SRM IST Tiruchirappalli
+**Team:** Kishore (RA2511056050022) · Niyas Ahmed (RA2511056050024) · Kathir Vel (RA2511056050052) · Syed Mohamed Vasim (RA2511056050030)
+**Guide:** Dr.R.Baskar,Associate professor,School of Computing,SRM IST Tiruchirappalli
 
 ## Features (from the report)
 - Voter registration with Voter ID format validation and **duplicate Voter ID detection**
